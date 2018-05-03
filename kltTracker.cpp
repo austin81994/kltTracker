@@ -80,25 +80,28 @@ int main()
 		        {
 		            grayFrame.copyTo(grayFrameOld);
 		        }
-	        	calcOpticalFlowPyrLK(	grayFrameOld, 
-										grayFrame, 
-										pointsOld, 
-										pointsNew, 
-										status, 
-										err, 
-										winSizeForOpticalFlow, 
-										3, 
+	        	calcOpticalFlowPyrLK(	grayFrameOld, /*Old Frame*/
+										grayFrame, /*New Frame*/
+										pointsOld, /*Old Points Vector*/
+										pointsNew, /*New Points Vector*/
+										status, /*Status Vector - T/F if flow for corresponding corner has been found*/
+										err, /*Error Vector - */
+										winSizeForOpticalFlow, /*size of the search window at each pyramid level*/
+										5, /*pyramid level number*/
 										termcrit, 
 										0, 
-										0.00001);
+										0.000001); /*minimum eigen value of 2x2 matrix. sets a standard (lower = more strict) for filtering out bad points.*/
 	        }
 
 	    }
         
         if(initializeFeatureTracking)
         {
+        	cvtColor(cameraFrame, grayFrame, COLOR_BGR2GRAY);
         	imshow("KLT Tracker", cameraFrame);//refresh the image so we draw the roi in the most recent frame
         	pointsOld.clear();//we are grabbing new points so all old points will be irrelevant
+        	//grayFrameOld.release();
+        	grayFrame.copyTo(grayFrameOld);
         	rect = selectROI("KLT Tracker", cameraFrame);//roi selection box to grab the object of interest
         	Mat mask = Mat::zeros(grayFrame.size(), CV_8U);//declare matrix of same size as our frame
         	Mat roi(mask, rect);//declare matrix roi that will mask the region of interest
@@ -106,15 +109,16 @@ int main()
             goodFeaturesToTrack(	grayFrame, 
             						pointsNew, 
             						MAX_COUNT, /*max number of corners*/
-            						0.15, /*corner quality*/ 
-            						5, /*min distance between corners*/
+            						0.2, /*corner quality*/ 
+            						3, /*min distance between corners*/
             						mask, /*roi mask*/
             						3, /*block size*/
             						//3, /*unknown variable found in examples?*/
-            						false, /*use Harris Detector*/
-            						0.04); /*parameter for Harris Detector*/
+            						true, /*use Harris Detector*/
+            						0.1); /*parameter for Harris Detector*/
             //pointsNew.push_back(centerOfFeatureTrackingArea);
             cornerSubPix(grayFrame, pointsNew, subPixWinSize, subPixZeroZone, termcrit);
+            pointsOld = pointsNew;
             initializeFeatureTracking = false;
             //centerOfFeatureTrackingArea = Point2f(-1,-1);
         }
@@ -124,9 +128,6 @@ int main()
 	    }
 	    imshow("KLT Tracker", cameraFrame);
 
-        swap(pointsNew, pointsOld);
-        swap(grayFrameOld, grayFrame);
-
         char c = (char)waitKey(60);
         if(c == 27)
             break;
@@ -135,11 +136,11 @@ int main()
         case 'p': //pause
 			pauseVideo = !pauseVideo;
             break;
-        case 'c':
+        case 'c'://clear points
             pointsOld.clear();
             pointsNew.clear();
             break;
-        case 's': //pause and also initialize feature tracking
+        case 's'://initialize feature tracking
         	//pauseVideo = !pauseVideo;
         	initializeFeatureTracking = true;
             break;
@@ -148,6 +149,8 @@ int main()
         //     nightMode = !nightMode;
         //     break;
         }
+		swap(pointsNew, pointsOld);
+		swap(grayFrameOld, grayFrame);
     }
 }
 
